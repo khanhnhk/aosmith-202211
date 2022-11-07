@@ -102,6 +102,14 @@
     uvu "^0.5.0"
     vfile-message "^3.0.0"
 
+"@astrojs/netlify@^1.2.0":
+  version "1.2.0"
+  resolved "https://registry.yarnpkg.com/@astrojs/netlify/-/netlify-1.2.0.tgz#88368ce663b32dd204a278506ed25eafd12f681b"
+  integrity sha512-nFWdgR5OVUCdYt/d3U3XBYPEMukGwxzRKH4D20lk8SjQsKTtvhJpRIJWrhlGJApidjms1WJXa8xh6A8BQYRmmA==
+  dependencies:
+    "@astrojs/webapi" "^1.1.0"
+    esbuild "^0.14.43"
+
 "@astrojs/prism@^1.0.0":
   version "1.0.2"
   resolved "https://registry.npmjs.org/@astrojs/prism/-/prism-1.0.2.tgz"
@@ -140,7 +148,7 @@
     node-fetch "^3.2.5"
     which-pm-runs "^1.1.0"
 
-"@astrojs/webapi@^1.1.1":
+"@astrojs/webapi@^1.1.0", "@astrojs/webapi@^1.1.1":
   version "1.1.1"
   resolved "https://registry.npmjs.org/@astrojs/webapi/-/webapi-1.1.1.tgz"
   integrity sha512-yeUvP27PoiBK/WCxyQzC4HLYZo4Hg6dzRd/dTsL50WGlAQVCwWcqzVJrIZKvzNDNaW/fIXutZTmdj6nec0PIGg==
