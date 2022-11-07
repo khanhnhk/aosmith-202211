@@ -14,15 +14,28 @@ import { Navigation } from 'swiper'
 export default function App() {
   return (
     <>
-      <Swiper navigation={true} modules={[Navigation]} className="mySwiper">
+      <Swiper
+        navigation={true}
+        modules={[Navigation]}
+        className="mySwiper bg-light-green"
+      >
         <SwiperSlide>
-          <img src="/images/Slide_R400s.png"></img>
+          <img
+            src="/images/Slide_R400s.png"
+            className="max-w-xl bg-light-green"
+          ></img>
         </SwiperSlide>
         <SwiperSlide>
-          <img src="/images/Slide_S600.png"></img>
+          <img
+            src="/images/Slide_S600.png"
+            className="max-w-xl bg-light-green"
+          ></img>
         </SwiperSlide>
         <SwiperSlide>
-          <img src="/images/Slide_VitaPlus.png"></img>
+          <img
+            src="/images/Slide_VitaPlus.png"
+            className="max-w-xl bg-light-green"
+          ></img>
         </SwiperSlide>
       </Swiper>
     </>
