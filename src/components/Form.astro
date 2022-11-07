@@ -1,0 +1,85 @@
+---
+const formData = {}
+
+---
+<div class="w-full max-w-lg self-center flex flex-col align-text-top pt-4">
+    <form id="installForm" action="http://localhost:8080/" target="_blank" method="POST" class="border-4 items-center border-none">
+        <fieldset class="grid grid-cols-2 pt-4">
+            <div>
+                <label for="branch-name">Tên đại lý:</label>
+                <input type="text" required name="branch-name" id="branch-name" list="branch-list" class="input-form">
+                <datalist id="branch-list">
+                    <option value="Đại Lý Lê Quỳnh"></option>
+                    <option value="Đại Lý Nhung Phạm"></option>
+                    <option value="Đại Lý Thanh Loan"></option>
+                    <option value="Đại Lý Hồng Sơn"></option>
+                </datalist>
+            </div>
+            <div>
+                <label for="branch-phone">SĐT đại lý:</label>
+                <input type="tel" required maxlength="10" name="branch-phone" id="branch-phone" class="input-form">
+            </div>
+        </fieldset>
+
+        <fieldset class="grid grid-cols-2 py-4">
+            <div class="pb-2">
+                <label for="customer-name">Tên khách hàng:</label>
+                <input type="text" name="customer-name" id="customer-name" class="input-form">
+            </div>
+            <div class="pb-2">
+                <label for="customer-phone">SĐT khách hàng:</label>
+                <input type="tel" required maxlength="10" name="customer-phone" id="customer-phone" class="input-form">
+            </div>
+            <div class="pb-2">
+                <label for="model">Tên model:</label>
+                <input type="text" name="model" id="model" class="input-form">
+            </div>
+            <div class="pb-2">
+                <label for="serial">Serial sản phẩm lắp đặt:</label>
+                <input type="text" name="serial" id="serial" class="input-form">
+            </div>
+            <div class="pb-2">
+                <label for="purchase-date">Thời gian mua hàng:</label>
+                <input type="date" name="purchase-date" id="purchase-date" class="input-form">
+            </div>
+            <div class="pb-2">
+                <label for="install-date">Thời gian lắp đặt:</label>
+                <input type="date" name="install-date" id="install-date" class="input-form">
+            </div>
+        </fieldset>
+
+        <div class="text-center items-center">
+            <span>Hình ảnh phiếu mua hàng/ phiếu lắp đặt/ hóa đơn hợp lệ:</span>
+            <img id="upload-image-btn" src="/images/upload-images.png" alt="" class="h-9 mx-auto my-4">
+            <input id="upload-images" type="file" name="images" multiple accept="image/*" class="invisible" hidden>
+            <input id="install-form-submit-btn" type="submit" value="Gửi thông tin" class="bg-dark-green text-white text-xl font-bold mx-auto p-2 px-6 rounded-full uppercase">
+        </div>
+
+    </form>
+</div>
+
+<style>
+    .input-form {
+        height: 30px;
+        border: 1px solid transparent;
+        border-radius: 6px;
+        padding: 0px 10px;
+        outline: none;
+    }
+</style>
+
+<script>
+    async function uploadImages() {
+        document.getElementById("upload-images")?.click();
+    }
+
+    document.getElementById("upload-image-btn")?.addEventListener("click", uploadImages)
+
+    // function handleFormSubmit(e) {
+    //     e.preventDefault();
+    //     alert('submitted');
+    //     console.log(e);
+    // }
+
+    // document.getElementById("installForm")?.addEventListener("submit", e => handleFormSubmit(e));
+</script>

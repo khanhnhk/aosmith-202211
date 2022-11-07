@@ -1,0 +1,17 @@
+---
+import Register from "./Register.astro";
+import Hero from "./Hero.astro"
+import Terms from "./Terms.astro"
+import Guide from "./Guide.astro"
+import Footer from "./Footer.astro"
+import Swiper from "./Swiper"
+---
+
+<div class="max-w-full w-full mx-auto">
+    <Hero />
+    <Register />
+    <Terms />
+    <Guide />
+    <Swiper client:visible/>
+    <Footer/>
+</div>

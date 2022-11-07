@@ -1,0 +1,30 @@
+---
+const steps = [
+    {"text": "Truy cập vào link nhận quà đính kèm trong email", "imgUrl": "/images/guide-step-1.png"},
+    {"text": "Nhập mật khẩu là 6 số được gửi tới tin nhắn tại thời điểm mở link", "imgUrl": "/images/guide-step-2.png"},
+    {"text": "Ấn chọn 'Mở quà của bạn'", "imgUrl": "/images/guide-step-3.png"},
+    {"text": "Chọn thương hiệu muốn sử dụng", "imgUrl": "/images/guide-step-4.png"},
+    {"text": "Nhập giá trị voucher muốn sử dụng, chọn \“Tiếp tục\” và xác nhận chi tiêu.", "imgUrl": "/images/guide-step-5.png"},
+    {"text": "Show e-code tại cửa hàng hoặc vào ứng dụng tiện ích online mua sắm, nhập e-code ở phần thanh toán để sử dụng.", "imgUrl": "/images/guide-step-6.png"},
+];
+---
+
+<section>
+    <div class="mt-14 text-center">
+        <h1 class="text-4xl text-center font-bold mb-4">HƯỚNG DẪN SỬ DỤNG VOUCHER</h1>
+        <div class="grid grid-flow-row-dense gap-1 gap-x-2 content-around grid-cols-2 grid-rows-3 justify-center space-x-0 px-4 md:grid-flow-col-dense md:grid-rows-none md:grid-cols-none">    
+            {steps.map((item, idx) => (
+                (<div class="max-w-1/6">
+                    <div class="wrapper">
+                        <img src={item.imgUrl} alt="" class="object-fit object-cover">
+                        <div>
+                            <h1 class="mx-3 text-t-dark-green text-left text-3xl font-bold">0{idx+1}</h1>
+                            <p class="w-0 min-w-full text-left px-2">{item.text}</p>
+                        </div>
+                    </div>
+                </div>)
+            ))}
+        </div>
+        <p class="text-bold italic text-xl py-6">Hotline hướng dẫn sử dụng voucher XXXX</p>
+    </div>
+</section>
