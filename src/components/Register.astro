@@ -1,15 +1,11 @@
 ---
 import Form from "./Form.astro"
+import Formik from "./Formik"
 ---
 
 <div class="pt-14 flex flex-wrap justify-center align-top max-w-full w-full">
-    <div class="min-w-[640px] flex justify-center">
-        <div class="w-1/2">
-            <img src="/images/agents.png" alt="" class="object-cover">
-        </div>
-    </div>
-    <div class="min-w-[640px] flex flex-col">
-        <h1 class="uppercase font-bold font-roboto text-4xl text-center">ĐĂNG KÝ ĐỔI THƯỞNG</h1>
-        <Form />
+    <div class="flex flex-col w-3/4 lg:w-1/2">
+        <h1 class="uppercase font-roboto text-t-dark-green font-extrabold text-4xl text-center">ĐĂNG KÝ ĐỔI THƯỞNG</h1>
+        <Formik />
     </div>
 </div>

@@ -8,6 +8,4 @@ export default defineConfig({
   integrations: [react(), tailwind(
     {config: { applyBaseStyles: false }}
   ), image()],
-  output: "server",
-  adapter: netlify(),
 });

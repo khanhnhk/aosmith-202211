@@ -48,3 +48,9 @@ body {
   height: 100%;
   object-fit: cover;
 }
+
+
+.form-input {
+    border: 1px solid transparent;
+    outline: none;
+}
