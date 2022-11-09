@@ -11,8 +11,8 @@ export default defineConfig({
       applyBaseStyles: true
     }
   }), image()],
-  output: "server",
-  adapter: node({
-    mode: "standalone"
-  })
+  // output: "server",
+  // adapter: node({
+  //   mode: "standalone"
+  // })
 });

@@ -1,11 +1,11 @@
 ---
 import Form from "./Form.astro"
-import Formik from "./Formik"
+import EventForm from "./EventForm"
 ---
 
 <div class="pt-14 flex flex-wrap justify-center align-top max-w-full w-full">
-    <div class="flex flex-col w-3/4 lg:w-1/2">
+    <div class="flex flex-col w-3/4">
         <h1 class="uppercase font-roboto text-t-dark-green font-extrabold text-4xl text-center">ĐĂNG KÝ ĐỔI THƯỞNG</h1>
-        <Formik client:load/>
+        <EventForm client:load/>
     </div>
 </div>

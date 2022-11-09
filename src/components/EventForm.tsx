@@ -146,7 +146,10 @@ const phonePrefixes = [
 
 export default function FormikForm() {
   const previewImages = (files: FileList) => {
-    const filePaths = [...files].map(file => URL.createObjectURL(file))
+    const filePaths = [...files].map(file =>
+      (window.URL ? URL : webkitURL).createObjectURL(file)
+    )
+    console.debug(filePaths)
 
     return filePaths.map((file, i) => {
       return <Thumbnail key={i} file={file} />
@@ -156,19 +159,14 @@ export default function FormikForm() {
   const [uploadSuccess, setUploadSuccess] = useState(false)
   const [errorMessage, setErrorMessage] = useState(null)
 
-  const uploadImages = (e: FormEvent) => {}
-
   const handleSubmit = async (e: any) => {
     const formData = new FormData()
     Object.entries(e).forEach(([key, value]) => {
       if (key != 'images') {
         formData.append(key.toLowerCase(), value)
-        console.log(key.toLowerCase(), value)
       } else {
-        console.log(key.toLowerCase(), value)
         for (const image of value) {
           formData.append(key.toLowerCase(), image)
-          console.log(key.toLowerCase(), image)
         }
       }
     })
@@ -176,7 +174,7 @@ export default function FormikForm() {
     // upload and create new record
     await client.records
       .create('installations', formData)
-      .then(record => {
+      .then(() => {
         setUploadSuccess(true)
       })
       .catch(err => {
@@ -237,6 +235,22 @@ export default function FormikForm() {
           errors.customerPhone = 'Nhà mạng chưa được khai báo'
         }
 
+        if (values.customerProvince.trim().length < 1) {
+          errors.customerProvince = 'Vui lòng chọn Tỉnh/ Thành phố'
+        }
+
+        if (values.customerAddress.trim().length < 1) {
+          errors.customerAddress = 'Vui lòng điền địa chỉ cụ thể của khách hàng'
+        }
+
+        if (values.model.trim().length < 1) {
+          errors.model = 'Vui lòng chọn model'
+        }
+
+        if (values.serial.trim().length < 1) {
+          errors.serial = 'Vui lòng điền số serial của sản phẩm'
+        }
+
         return errors
       }}
       onSubmit={(values, actions) => {
@@ -258,13 +272,13 @@ export default function FormikForm() {
         <>
           <Form className="grid p-4 w-full max-w-full" onSubmit={handleSubmit}>
             {/* Branch info */}
-            <fieldset className="p-4 w-full">
+            <fieldset className="p-4 w-full drop-shadow-lg">
               <legend className="uppercase font-extrabold text-xl">
                 1.Thông tin đại lý
               </legend>
-              <div className="grid md:grid-cols-2 py-4 bg-white rounded-2xl box-content place-content-center">
-                <div>
-                  <div className="flex flex-col p-4">
+              <div className="md:grid md:grid-cols-3 bg-white rounded-2xl w-full md:box-content place-content-center">
+                <div className="md:col-span-2">
+                  <div className="flex flex-col p-4 md:pr-2">
                     <label htmlFor="branchName" className="mx-2">
                       Tên đại lý
                     </label>
@@ -297,7 +311,7 @@ export default function FormikForm() {
                 </div>
 
                 <div>
-                  <div className="flex flex-col p-4">
+                  <div className="flex flex-col p-4 md:pl-0">
                     <label htmlFor="branchPhone" className="mx-2">
                       SĐT đại lý đăng ký
                     </label>
@@ -323,14 +337,14 @@ export default function FormikForm() {
 
             {/* Customer info */}
             <div>
-              <fieldset className="p-4 w-full">
+              <fieldset className="p-4 w-full drop-shadow-lg">
                 <legend className="uppercase font-extrabold text-xl">
                   2.Thông tin khách hàng
                 </legend>
                 <div className="bg-white box-content py-4 rounded-xl">
                   <div className=" p-4 flex flex-col bg-white rounded-2xl place-content-center">
-                    <div className="grid md:grid-cols-2 grid-flow-dense">
-                      <div>
+                    <div className="grid md:grid-cols-3 grid-flow-dense">
+                      <div className="">
                         <div className="flex flex-col py-4">
                           <label htmlFor="customerName" className="mx-2">
                             Tên khách hàng
@@ -374,9 +388,9 @@ export default function FormikForm() {
                         </div>
                       </div>
                     </div>
-                    <span className="font-bold mx-6">A. Địa chỉ lắp đặt</span>
-                    <div className="grid md:grid-cols-5">
-                      <div className="md:col-span-2">
+                    <span className="font-bold mx-3">A. Địa chỉ lắp đặt</span>
+                    <div className="grid md:grid-cols-3">
+                      <div className="">
                         <div className="flex flex-col py-4">
                           <label htmlFor="customerProvince" className="mx-2">
                             Tỉnh/ Thành phố
@@ -409,7 +423,7 @@ export default function FormikForm() {
                         />
                       </div>
 
-                      <div className="col-span-3">
+                      <div className="md:col-span-2">
                         <div className="flex flex-col py-4">
                           <label htmlFor="customerAddress" className="mx-2">
                             Địa chỉ cụ thể
@@ -434,7 +448,7 @@ export default function FormikForm() {
                     </div>
 
                     {/* Model */}
-                    <span className="font-bold mx-6">B. Model</span>
+                    <span className="font-bold mx-3">B. Model</span>
                     <div className="md:grid grid-cols-3">
                       <div className="col-span-1">
                         <div className="flex flex-col py-4">
@@ -522,15 +536,14 @@ export default function FormikForm() {
                       className="error-message"
                       component="span"
                     />
-                    <img
-                      id="upload-image-btn"
-                      src="/images/upload-images.png"
-                      alt=""
-                      className="h-9 mx-auto my-4"
-                      onClick={() => {
-                        document.getElementById('upload-images')?.click()
-                      }}
-                    />
+                    <label htmlFor="upload-images">
+                      <img
+                        id="upload-image-btn"
+                        src="/images/upload-images.png"
+                        alt=""
+                        className="h-9 mx-auto my-4"
+                      />
+                    </label>
                     <input
                       id="upload-images"
                       type="file"
@@ -567,6 +580,7 @@ export default function FormikForm() {
               </fieldset>
             </div>
           </Form>
+          {JSON.stringify(values)}
         </>
       )}
     </Formik>
