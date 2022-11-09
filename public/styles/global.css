@@ -53,4 +53,21 @@ body {
 .form-input {
     border: 1px solid transparent;
     outline: none;
+    height: 2.5rem;
+}
+
+.img-thumbnail{
+  padding:.25rem;
+  background-color:#fff;
+  border:2px solid #ddd;
+  border-radius:.25rem;
+  transition:all .2s ease-in-out;
+  max-width:100px;
+  height:auto
+}
+
+.error-message {
+  color: red;
+  padding: .5rem;
+  @apply text-sm
 }

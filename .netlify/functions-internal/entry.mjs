@@ -1,5 +1,5 @@
 import * as adapter from '@astrojs/netlify/netlify-functions.js';
-import React, { createElement } from 'react';
+import React, { createElement, useState } from 'react';
 import ReactDOM from 'react-dom/server';
 import { escape } from 'html-escaper';
 import mime from 'mime';
@@ -13,9 +13,9 @@ import { TransformStream } from 'web-streams-polyfill';
 import { Worker, parentPort } from 'worker_threads';
 import { promises } from 'node:fs';
 import { createRequire } from 'module';
-/* empty css                                 */import { Swiper, SwiperSlide } from 'swiper/react';
-import { Navigation } from 'swiper';
+/* empty css                                 */import { Formik, Form, Field, ErrorMessage } from 'formik';
 import { jsx, Fragment as Fragment$1, jsxs } from 'react/jsx-runtime';
+import PocketBase from 'pocketbase';
 import 'cookie';
 import 'string-width';
 import 'path-browserify';
@@ -216,7 +216,7 @@ const _renderer1 = {
 	renderToStaticMarkup: renderToStaticMarkup$1,
 };
 
-const ASTRO_VERSION = "1.6.3";
+const ASTRO_VERSION = "1.6.5";
 
 function createDeprecatedFetchContentFn() {
   return () => {
@@ -318,216 +318,6 @@ function getPrescripts(type, directive) {
       return `<script>${getDirectiveScriptText(directive)}<\/script>`;
   }
   return "";
-}
-
-const Fragment = Symbol.for("astro:fragment");
-const Renderer = Symbol.for("astro:renderer");
-const encoder = new TextEncoder();
-const decoder = new TextDecoder();
-function stringifyChunk(result, chunk) {
-  switch (chunk.type) {
-    case "directive": {
-      const { hydration } = chunk;
-      let needsHydrationScript = hydration && determineIfNeedsHydrationScript(result);
-      let needsDirectiveScript = hydration && determinesIfNeedsDirectiveScript(result, hydration.directive);
-      let prescriptType = needsHydrationScript ? "both" : needsDirectiveScript ? "directive" : null;
-      if (prescriptType) {
-        let prescripts = getPrescripts(prescriptType, hydration.directive);
-        return markHTMLString(prescripts);
-      } else {
-        return "";
-      }
-    }
-    default: {
-      return chunk.toString();
-    }
-  }
-}
-class HTMLParts {
-  constructor() {
-    this.parts = "";
-  }
-  append(part, result) {
-    if (ArrayBuffer.isView(part)) {
-      this.parts += decoder.decode(part);
-    } else {
-      this.parts += stringifyChunk(result, part);
-    }
-  }
-  toString() {
-    return this.parts;
-  }
-  toArrayBuffer() {
-    return encoder.encode(this.parts);
-  }
-}
-
-const ClientOnlyPlaceholder = "astro-client-only";
-const skipAstroJSXCheck = /* @__PURE__ */ new WeakSet();
-let originalConsoleError;
-let consoleFilterRefs = 0;
-async function renderJSX(result, vnode) {
-  switch (true) {
-    case vnode instanceof HTMLString:
-      if (vnode.toString().trim() === "") {
-        return "";
-      }
-      return vnode;
-    case typeof vnode === "string":
-      return markHTMLString(escapeHTML(vnode));
-    case typeof vnode === "function":
-      return vnode;
-    case (!vnode && vnode !== 0):
-      return "";
-    case Array.isArray(vnode):
-      return markHTMLString(
-        (await Promise.all(vnode.map((v) => renderJSX(result, v)))).join("")
-      );
-  }
-  if (isVNode(vnode)) {
-    switch (true) {
-      case !vnode.type: {
-        throw new Error(`Unable to render ${result._metadata.pathname} because it contains an undefined Component!
-Did you forget to import the component or is it possible there is a typo?`);
-      }
-      case vnode.type === Symbol.for("astro:fragment"):
-        return renderJSX(result, vnode.props.children);
-      case vnode.type.isAstroComponentFactory: {
-        let props = {};
-        let slots = {};
-        for (const [key, value] of Object.entries(vnode.props ?? {})) {
-          if (key === "children" || value && typeof value === "object" && value["$$slot"]) {
-            slots[key === "children" ? "default" : key] = () => renderJSX(result, value);
-          } else {
-            props[key] = value;
-          }
-        }
-        return markHTMLString(await renderToString(result, vnode.type, props, slots));
-      }
-      case (!vnode.type && vnode.type !== 0):
-        return "";
-      case (typeof vnode.type === "string" && vnode.type !== ClientOnlyPlaceholder):
-        return markHTMLString(await renderElement$1(result, vnode.type, vnode.props ?? {}));
-    }
-    if (vnode.type) {
-      let extractSlots2 = function(child) {
-        if (Array.isArray(child)) {
-          return child.map((c) => extractSlots2(c));
-        }
-        if (!isVNode(child)) {
-          _slots.default.push(child);
-          return;
-        }
-        if ("slot" in child.props) {
-          _slots[child.props.slot] = [..._slots[child.props.slot] ?? [], child];
-          delete child.props.slot;
-          return;
-        }
-        _slots.default.push(child);
-      };
-      if (typeof vnode.type === "function" && vnode.type["astro:renderer"]) {
-        skipAstroJSXCheck.add(vnode.type);
-      }
-      if (typeof vnode.type === "function" && vnode.props["server:root"]) {
-        const output2 = await vnode.type(vnode.props ?? {});
-        return await renderJSX(result, output2);
-      }
-      if (typeof vnode.type === "function" && !skipAstroJSXCheck.has(vnode.type)) {
-        useConsoleFilter();
-        try {
-          const output2 = await vnode.type(vnode.props ?? {});
-          if (output2 && output2[AstroJSX]) {
-            return await renderJSX(result, output2);
-          } else if (!output2) {
-            return await renderJSX(result, output2);
-          }
-        } catch (e) {
-          skipAstroJSXCheck.add(vnode.type);
-        } finally {
-          finishUsingConsoleFilter();
-        }
-      }
-      const { children = null, ...props } = vnode.props ?? {};
-      const _slots = {
-        default: []
-      };
-      extractSlots2(children);
-      for (const [key, value] of Object.entries(props)) {
-        if (value["$$slot"]) {
-          _slots[key] = value;
-          delete props[key];
-        }
-      }
-      const slotPromises = [];
-      const slots = {};
-      for (const [key, value] of Object.entries(_slots)) {
-        slotPromises.push(
-          renderJSX(result, value).then((output2) => {
-            if (output2.toString().trim().length === 0)
-              return;
-            slots[key] = () => output2;
-          })
-        );
-      }
-      await Promise.all(slotPromises);
-      let output;
-      if (vnode.type === ClientOnlyPlaceholder && vnode.props["client:only"]) {
-        output = await renderComponent(
-          result,
-          vnode.props["client:display-name"] ?? "",
-          null,
-          props,
-          slots
-        );
-      } else {
-        output = await renderComponent(
-          result,
-          typeof vnode.type === "function" ? vnode.type.name : vnode.type,
-          vnode.type,
-          props,
-          slots
-        );
-      }
-      if (typeof output !== "string" && Symbol.asyncIterator in output) {
-        let parts = new HTMLParts();
-        for await (const chunk of output) {
-          parts.append(chunk, result);
-        }
-        return markHTMLString(parts.toString());
-      } else {
-        return markHTMLString(output);
-      }
-    }
-  }
-  return markHTMLString(`${vnode}`);
-}
-async function renderElement$1(result, tag, { children, ...props }) {
-  return markHTMLString(
-    `<${tag}${spreadAttributes(props)}${markHTMLString(
-      (children == null || children == "") && voidElementNames.test(tag) ? `/>` : `>${children == null ? "" : await renderJSX(result, children)}</${tag}>`
-    )}`
-  );
-}
-function useConsoleFilter() {
-  consoleFilterRefs++;
-  if (!originalConsoleError) {
-    originalConsoleError = console.error;
-    try {
-      console.error = filteredConsoleError;
-    } catch (error) {
-    }
-  }
-}
-function finishUsingConsoleFilter() {
-  consoleFilterRefs--;
-}
-function filteredConsoleError(msg, ...rest) {
-  if (consoleFilterRefs > 0 && typeof msg === "string") {
-    const isKnownReactHookError = msg.includes("Warning: Invalid hook call.") && msg.includes("https://reactjs.org/link/invalid-hook-call");
-    if (isKnownReactHookError)
-      return;
-  }
-  originalConsoleError(msg, ...rest);
 }
 
 const PROP_TYPE = {
@@ -754,80 +544,6 @@ async function generateHydrateScript(scriptOptions, metadata) {
   return island;
 }
 
-class SlotString extends HTMLString {
-  constructor(content, instructions) {
-    super(content);
-    this.instructions = instructions;
-  }
-}
-async function renderSlot(_result, slotted, fallback) {
-  if (slotted) {
-    let iterator = renderChild(slotted);
-    let content = "";
-    let instructions = null;
-    for await (const chunk of iterator) {
-      if (chunk.type === "directive") {
-        if (instructions === null) {
-          instructions = [];
-        }
-        instructions.push(chunk);
-      } else {
-        content += chunk;
-      }
-    }
-    return markHTMLString(new SlotString(content, instructions));
-  }
-  return fallback;
-}
-async function renderSlots(result, slots = {}) {
-  let slotInstructions = null;
-  let children = {};
-  if (slots) {
-    await Promise.all(
-      Object.entries(slots).map(
-        ([key, value]) => renderSlot(result, value).then((output) => {
-          if (output.instructions) {
-            if (slotInstructions === null) {
-              slotInstructions = [];
-            }
-            slotInstructions.push(...output.instructions);
-          }
-          children[key] = output;
-        })
-      )
-    );
-  }
-  return { slotInstructions, children };
-}
-
-async function* renderChild(child) {
-  child = await child;
-  if (child instanceof SlotString) {
-    if (child.instructions) {
-      yield* child.instructions;
-    }
-    yield child;
-  } else if (isHTMLString(child)) {
-    yield child;
-  } else if (Array.isArray(child)) {
-    for (const value of child) {
-      yield markHTMLString(await renderChild(value));
-    }
-  } else if (typeof child === "function") {
-    yield* renderChild(child());
-  } else if (typeof child === "string") {
-    yield markHTMLString(escapeHTML(child));
-  } else if (!child && child !== 0) ; else if (child instanceof AstroComponent || Object.prototype.toString.call(child) === "[object AstroComponent]") {
-    yield* renderAstroComponent(child);
-  } else if (ArrayBuffer.isView(child)) {
-    yield child;
-  } else if (typeof child === "object" && (Symbol.asyncIterator in child || Symbol.iterator in child)) {
-    yield* child;
-  } else {
-    yield child;
-  }
-}
-
 function validateComponentProps(props, displayName) {
   var _a;
   if (((_a = (Object.assign({"BASE_URL":"/","MODE":"production","DEV":false,"PROD":true},{_:process.env._,}))) == null ? void 0 : _a.DEV) && props != null) {
@@ -908,6 +624,306 @@ async function renderToIterable(result, componentFactory, displayName, props, ch
 }
 async function renderTemplate(htmlParts, ...expressions) {
   return new AstroComponent(htmlParts, expressions);
+}
+
+async function* renderChild(child) {
+  child = await child;
+  if (child instanceof SlotString) {
+    if (child.instructions) {
+      yield* child.instructions;
+    }
+    yield child;
+  } else if (isHTMLString(child)) {
+    yield child;
+  } else if (Array.isArray(child)) {
+    for (const value of child) {
+      yield markHTMLString(await renderChild(value));
+    }
+  } else if (typeof child === "function") {
+    yield* renderChild(child());
+  } else if (typeof child === "string") {
+    yield markHTMLString(escapeHTML(child));
+  } else if (!child && child !== 0) ; else if (child instanceof AstroComponent || Object.prototype.toString.call(child) === "[object AstroComponent]") {
+    yield* renderAstroComponent(child);
+  } else if (ArrayBuffer.isView(child)) {
+    yield child;
+  } else if (typeof child === "object" && (Symbol.asyncIterator in child || Symbol.iterator in child)) {
+    yield* child;
+  } else {
+    yield child;
+  }
+}
+
+const slotString = Symbol.for("astro:slot-string");
+class SlotString extends HTMLString {
+  constructor(content, instructions) {
+    super(content);
+    this.instructions = instructions;
+    this[slotString] = true;
+  }
+}
+function isSlotString(str) {
+  return !!str[slotString];
+}
+async function renderSlot(_result, slotted, fallback) {
+  if (slotted) {
+    let iterator = renderChild(slotted);
+    let content = "";
+    let instructions = null;
+    for await (const chunk of iterator) {
+      if (chunk.type === "directive") {
+        if (instructions === null) {
+          instructions = [];
+        }
+        instructions.push(chunk);
+      } else {
+        content += chunk;
+      }
+    }
+    return markHTMLString(new SlotString(content, instructions));
+  }
+  return fallback;
+}
+async function renderSlots(result, slots = {}) {
+  let slotInstructions = null;
+  let children = {};
+  if (slots) {
+    await Promise.all(
+      Object.entries(slots).map(
+        ([key, value]) => renderSlot(result, value).then((output) => {
+          if (output.instructions) {
+            if (slotInstructions === null) {
+              slotInstructions = [];
+            }
+            slotInstructions.push(...output.instructions);
+          }
+          children[key] = output;
+        })
+      )
+    );
+  }
+  return { slotInstructions, children };
+}
+
+const Fragment = Symbol.for("astro:fragment");
+const Renderer = Symbol.for("astro:renderer");
+const encoder = new TextEncoder();
+const decoder = new TextDecoder();
+function stringifyChunk(result, chunk) {
+  switch (chunk.type) {
+    case "directive": {
+      const { hydration } = chunk;
+      let needsHydrationScript = hydration && determineIfNeedsHydrationScript(result);
+      let needsDirectiveScript = hydration && determinesIfNeedsDirectiveScript(result, hydration.directive);
+      let prescriptType = needsHydrationScript ? "both" : needsDirectiveScript ? "directive" : null;
+      if (prescriptType) {
+        let prescripts = getPrescripts(prescriptType, hydration.directive);
+        return markHTMLString(prescripts);
+      } else {
+        return "";
+      }
+    }
+    default: {
+      if (isSlotString(chunk)) {
+        let out = "";
+        const c = chunk;
+        if (c.instructions) {
+          for (const instr of c.instructions) {
+            out += stringifyChunk(result, instr);
+          }
+        }
+        out += chunk.toString();
+        return out;
+      }
+      return chunk.toString();
+    }
+  }
+}
+class HTMLParts {
+  constructor() {
+    this.parts = "";
+  }
+  append(part, result) {
+    if (ArrayBuffer.isView(part)) {
+      this.parts += decoder.decode(part);
+    } else {
+      this.parts += stringifyChunk(result, part);
+    }
+  }
+  toString() {
+    return this.parts;
+  }
+  toArrayBuffer() {
+    return encoder.encode(this.parts);
+  }
+}
+
+const ClientOnlyPlaceholder = "astro-client-only";
+const skipAstroJSXCheck = /* @__PURE__ */ new WeakSet();
+let originalConsoleError;
+let consoleFilterRefs = 0;
+async function renderJSX(result, vnode) {
+  switch (true) {
+    case vnode instanceof HTMLString:
+      if (vnode.toString().trim() === "") {
+        return "";
+      }
+      return vnode;
+    case typeof vnode === "string":
+      return markHTMLString(escapeHTML(vnode));
+    case typeof vnode === "function":
+      return vnode;
+    case (!vnode && vnode !== 0):
+      return "";
+    case Array.isArray(vnode):
+      return markHTMLString(
+        (await Promise.all(vnode.map((v) => renderJSX(result, v)))).join("")
+      );
+  }
+  if (isVNode(vnode)) {
+    switch (true) {
+      case !vnode.type: {
+        throw new Error(`Unable to render ${result._metadata.pathname} because it contains an undefined Component!
+Did you forget to import the component or is it possible there is a typo?`);
+      }
+      case vnode.type === Symbol.for("astro:fragment"):
+        return renderJSX(result, vnode.props.children);
+      case vnode.type.isAstroComponentFactory: {
+        let props = {};
+        let slots = {};
+        for (const [key, value] of Object.entries(vnode.props ?? {})) {
+          if (key === "children" || value && typeof value === "object" && value["$$slot"]) {
+            slots[key === "children" ? "default" : key] = () => renderJSX(result, value);
+          } else {
+            props[key] = value;
+          }
+        }
+        return markHTMLString(await renderToString(result, vnode.type, props, slots));
+      }
+      case (!vnode.type && vnode.type !== 0):
+        return "";
+      case (typeof vnode.type === "string" && vnode.type !== ClientOnlyPlaceholder):
+        return markHTMLString(await renderElement$1(result, vnode.type, vnode.props ?? {}));
+    }
+    if (vnode.type) {
+      let extractSlots2 = function(child) {
+        if (Array.isArray(child)) {
+          return child.map((c) => extractSlots2(c));
+        }
+        if (!isVNode(child)) {
+          _slots.default.push(child);
+          return;
+        }
+        if ("slot" in child.props) {
+          _slots[child.props.slot] = [..._slots[child.props.slot] ?? [], child];
+          delete child.props.slot;
+          return;
+        }
+        _slots.default.push(child);
+      };
+      if (typeof vnode.type === "function" && vnode.type["astro:renderer"]) {
+        skipAstroJSXCheck.add(vnode.type);
+      }
+      if (typeof vnode.type === "function" && vnode.props["server:root"]) {
+        const output2 = await vnode.type(vnode.props ?? {});
+        return await renderJSX(result, output2);
+      }
+      if (typeof vnode.type === "function" && !skipAstroJSXCheck.has(vnode.type)) {
+        useConsoleFilter();
+        try {
+          const output2 = await vnode.type(vnode.props ?? {});
+          if (output2 && output2[AstroJSX]) {
+            return await renderJSX(result, output2);
+          } else if (!output2) {
+            return await renderJSX(result, output2);
+          }
+        } catch (e) {
+          skipAstroJSXCheck.add(vnode.type);
+        } finally {
+          finishUsingConsoleFilter();
+        }
+      }
+      const { children = null, ...props } = vnode.props ?? {};
+      const _slots = {
+        default: []
+      };
+      extractSlots2(children);
+      for (const [key, value] of Object.entries(props)) {
+        if (value["$$slot"]) {
+          _slots[key] = value;
+          delete props[key];
+        }
+      }
+      const slotPromises = [];
+      const slots = {};
+      for (const [key, value] of Object.entries(_slots)) {
+        slotPromises.push(
+          renderJSX(result, value).then((output2) => {
+            if (output2.toString().trim().length === 0)
+              return;
+            slots[key] = () => output2;
+          })
+        );
+      }
+      await Promise.all(slotPromises);
+      let output;
+      if (vnode.type === ClientOnlyPlaceholder && vnode.props["client:only"]) {
+        output = await renderComponent(
+          result,
+          vnode.props["client:display-name"] ?? "",
+          null,
+          props,
+          slots
+        );
+      } else {
+        output = await renderComponent(
+          result,
+          typeof vnode.type === "function" ? vnode.type.name : vnode.type,
+          vnode.type,
+          props,
+          slots
+        );
+      }
+      if (typeof output !== "string" && Symbol.asyncIterator in output) {
+        let parts = new HTMLParts();
+        for await (const chunk of output) {
+          parts.append(chunk, result);
+        }
+        return markHTMLString(parts.toString());
+      } else {
+        return markHTMLString(output);
+      }
+    }
+  }
+  return markHTMLString(`${vnode}`);
+}
+async function renderElement$1(result, tag, { children, ...props }) {
+  return markHTMLString(
+    `<${tag}${spreadAttributes(props)}${markHTMLString(
+      (children == null || children == "") && voidElementNames.test(tag) ? `/>` : `>${children == null ? "" : await renderJSX(result, children)}</${tag}>`
+    )}`
+  );
+}
+function useConsoleFilter() {
+  consoleFilterRefs++;
+  if (!originalConsoleError) {
+    originalConsoleError = console.error;
+    try {
+      console.error = filteredConsoleError;
+    } catch (error) {
+    }
+  }
+}
+function finishUsingConsoleFilter() {
+  consoleFilterRefs--;
+}
+function filteredConsoleError(msg, ...rest) {
+  if (consoleFilterRefs > 0 && typeof msg === "string") {
+    const isKnownReactHookError = msg.includes("Warning: Invalid hook call.") && msg.includes("https://reactjs.org/link/invalid-hook-call");
+    if (isKnownReactHookError)
+      return;
+  }
+  originalConsoleError(msg, ...rest);
 }
 
 /**
@@ -12575,186 +12591,482 @@ const _page0 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
 	get
 }, Symbol.toStringTag, { value: 'Module' }));
 
-const $$Astro$8 = createAstro("/Users/khanhnguyen/Documents/Projects/personal/freelance/aos-smith/src/components/Body.astro", "", "file:///Users/khanhnguyen/Documents/Projects/personal/freelance/aos-smith/");
+const $$Astro$6 = createAstro("/Users/khanhnguyen/Documents/Projects/personal/freelance/aos-smith/src/components/Body.astro", "", "file:///Users/khanhnguyen/Documents/Projects/personal/freelance/aos-smith/");
 const $$Body = createComponent(async ($$result, $$props, $$slots) => {
-  const Astro2 = $$result.createAstro($$Astro$8, $$props, $$slots);
+  const Astro2 = $$result.createAstro($$Astro$6, $$props, $$slots);
   Astro2.self = $$Body;
-  return renderTemplate`${maybeRenderHead($$result)}<body class="bg-light-green max-w-full">
+  return renderTemplate`${maybeRenderHead($$result)}<body class="bg-light-green max-w-full bg-repeat">
     ${renderSlot($$result, $$slots["default"])}
 </body>`;
 });
 
-const $$Astro$7 = createAstro("/Users/khanhnguyen/Documents/Projects/personal/freelance/aos-smith/src/components/Form.astro", "", "file:///Users/khanhnguyen/Documents/Projects/personal/freelance/aos-smith/");
-const $$Form = createComponent(async ($$result, $$props, $$slots) => {
-  const Astro2 = $$result.createAstro($$Astro$7, $$props, $$slots);
-  Astro2.self = $$Form;
-  const STYLES = [];
-  for (const STYLE of STYLES)
-    $$result.styles.add(STYLE);
-  return renderTemplate`${maybeRenderHead($$result)}<div class="w-full max-w-lg self-center flex flex-col align-text-top pt-4 astro-XA6HDSRT">
-    <form id="installForm" action="http://localhost:8080/" target="_blank" method="POST" class="border-4 items-center border-none astro-XA6HDSRT">
-        <fieldset class="grid grid-cols-2 pt-4 astro-XA6HDSRT">
-            <div class="astro-XA6HDSRT">
-                <label for="branch-name" class="astro-XA6HDSRT">Tên đại lý:</label>
-                <input type="text" required name="branch-name" id="branch-name" list="branch-list" class="input-form astro-XA6HDSRT">
-                <datalist id="branch-list" class="astro-XA6HDSRT">
-                    <option value="Đại Lý Lê Quỳnh" class="astro-XA6HDSRT"></option>
-                    <option value="Đại Lý Nhung Phạm" class="astro-XA6HDSRT"></option>
-                    <option value="Đại Lý Thanh Loan" class="astro-XA6HDSRT"></option>
-                    <option value="Đại Lý Hồng Sơn" class="astro-XA6HDSRT"></option>
-                </datalist>
-            </div>
-            <div class="astro-XA6HDSRT">
-                <label for="branch-phone" class="astro-XA6HDSRT">SĐT đại lý:</label>
-                <input type="tel" required maxlength="10" name="branch-phone" id="branch-phone" class="input-form astro-XA6HDSRT">
-            </div>
-        </fieldset>
+function Thumbnail({
+  file
+}) {
+  return /* @__PURE__ */ jsx("img", {
+    src: file,
+    className: "img-thumbnail mt-2",
+    height: 200,
+    width: 200
+  });
+}
+__astro_tag_component__(Thumbnail, "@astrojs/react");
 
-        <fieldset class="grid grid-cols-2 py-4 astro-XA6HDSRT">
-            <div class="pb-2 astro-XA6HDSRT">
-                <label for="customer-name" class="astro-XA6HDSRT">Tên khách hàng:</label>
-                <input type="text" name="customer-name" id="customer-name" class="input-form astro-XA6HDSRT">
-            </div>
-            <div class="pb-2 astro-XA6HDSRT">
-                <label for="customer-phone" class="astro-XA6HDSRT">SĐT khách hàng:</label>
-                <input type="tel" required maxlength="10" name="customer-phone" id="customer-phone" class="input-form astro-XA6HDSRT">
-            </div>
-            <div class="pb-2 astro-XA6HDSRT">
-                <label for="model" class="astro-XA6HDSRT">Tên model:</label>
-                <input type="text" name="model" id="model" class="input-form astro-XA6HDSRT">
-            </div>
-            <div class="pb-2 astro-XA6HDSRT">
-                <label for="serial" class="astro-XA6HDSRT">Serial sản phẩm lắp đặt:</label>
-                <input type="text" name="serial" id="serial" class="input-form astro-XA6HDSRT">
-            </div>
-            <div class="pb-2 astro-XA6HDSRT">
-                <label for="purchase-date" class="astro-XA6HDSRT">Thời gian mua hàng:</label>
-                <input type="date" name="purchase-date" id="purchase-date" class="input-form astro-XA6HDSRT">
-            </div>
-            <div class="pb-2 astro-XA6HDSRT">
-                <label for="install-date" class="astro-XA6HDSRT">Thời gian lắp đặt:</label>
-                <input type="date" name="install-date" id="install-date" class="input-form astro-XA6HDSRT">
-            </div>
-        </fieldset>
+const client = new PocketBase("http://127.0.0.1:8090");
+await client.admins.authViaEmail("admin@gmail.com", "123456admin");
+const branchData = await client.records.getList("branch");
+const branches = Object.entries(branchData.items);
+var branchInfos = {};
+for (const branch of branches) {
+  branchInfos[branch[1].name.trim().toLowerCase()] = branch[1].phone;
+}
+const provinces = ["An Giang", "B\xE0 R\u1ECBa \u2013 V\u0169ng T\xE0u", "B\xECnh D\u01B0\u01A1ng", "B\xECnh Ph\u01B0\u1EDBc", "B\xECnh Thu\u1EADn", "B\xECnh \u0110\u1ECBnh", "B\u1EA1c Li\xEAu", "B\u1EAFc Giang", "B\u1EAFc K\u1EA1n", "B\u1EAFc Ninh", "B\u1EBFn Tre", "Cao B\u1EB1ng", "C\xE0 Mau", "C\u1EA7n Th\u01A1", "\u0110i\u1EC7n Bi\xEAn", "\u0110\xE0 N\u1EB5ng", "\u0110\u1EAFk L\u1EAFk", "\u0110\u1EAFk N\xF4ng", "\u0110\u1ED3ng Nai", "\u0110\u1ED3ng Th\xE1p", "Gia Lai", "H\xE0 Giang", "H\xE0 Nam", "H\xE0 N\u1ED9i", "H\xE0 T\u0129nh", "H\xF2a B\xECnh", "H\u01B0ng Y\xEAn", "H\u1EA3i D\u01B0\u01A1ng", "H\u1EA3i Ph\xF2ng", "H\u1EADu Giang", "Kh\xE1nh H\xF2a", "Ki\xEAn Giang", "Kon Tum", "Lai Ch\xE2u", "Long An", "L\xE0o Cai", "L\xE2m \u0110\u1ED3ng", "L\u1EA1ng S\u01A1n", "Nam \u0110\u1ECBnh", "Ngh\u1EC7 An", "Ninh B\xECnh", "Ninh Thu\u1EADn", "Ph\xFA Th\u1ECD", "Ph\xFA Y\xEAn", "Qu\u1EA3ng B\xECnh", "Qu\u1EA3ng Nam", "Qu\u1EA3ng Ng\xE3i", "Qu\u1EA3ng Ninh", "Qu\u1EA3ng Tr\u1ECB", "S\xF3c Tr\u0103ng", "S\u01A1n La", "TP H\u1ED3 Ch\xED Minh", "Thanh H\xF3a", "Th\xE1i B\xECnh", "Th\xE1i Nguy\xEAn", "Th\u1EEBa Thi\xEAn Hu\u1EBF", "Ti\u1EC1n Giang", "Tr\xE0 Vinh", "Tuy\xEAn Quang", "T\xE2y Ninh", "V\u0129nh Long", "V\u0129nh Ph\xFAc", "Y\xEAn B\xE1i"];
+const models = ["A1", "A2", "ADR75-V-ET-1", "AO-MF-ADV", "AR600-U3", "AR75-A-S-1E", "AR75-A-S-2", "AR75-A-S-H1", "AR75-U2", "C1", "C2", "Daisy", "Daisy Plus", "E2", "E3", "G1", "G2", "K400", "KJ420F-B01", "KJ500F-B01", "AR600-C-S-1", "M1", "M2", "P6", "P7", "R400E", "R400S", "S400", "S600", "VITA", "VITA Plus", "Z4", "Z7"];
+const phonePrefixes = ["032", "033", "034", "035", "036", "037", "038", "039", "070", "079", "077", "076", "078", "083", "084", "085", "081", "082", "056", "058", "059"];
+function FormikForm() {
+  const previewImages = (files) => {
+    const filePaths = [...files].map((file) => URL.createObjectURL(file));
+    return filePaths.map((file, i) => {
+      return /* @__PURE__ */ jsx(Thumbnail, {
+        file
+      }, i);
+    });
+  };
+  const [uploadSuccess, setUploadSuccess] = useState(false);
+  const [errorMessage, setErrorMessage] = useState(null);
+  const handleSubmit = async (e) => {
+    const formData = new FormData();
+    Object.entries(e).forEach(([key, value]) => {
+      if (key != "images") {
+        formData.append(key.toLowerCase(), value);
+        console.log(key.toLowerCase(), value);
+      } else {
+        console.log(key.toLowerCase(), value);
+        for (const image of value) {
+          formData.append(key.toLowerCase(), image);
+          console.log(key.toLowerCase(), image);
+        }
+      }
+    });
+    await client.records.create("installations", formData).then((record) => {
+      setUploadSuccess(true);
+    }).catch((err) => {
+      setUploadSuccess(false);
+      setErrorMessage(err.message);
+    });
+  };
+  return /* @__PURE__ */ jsx(Formik, {
+    initialValues: {
+      branchName: "",
+      branchPhone: "",
+      customerName: "",
+      customerPhone: "",
+      customerProvince: "",
+      customerAddress: "",
+      model: "",
+      serial: "",
+      installDate: "",
+      images: []
+    },
+    validate: (values) => {
+      const errors = {};
+      const branchName = values.branchName.trim().toLowerCase();
+      const branchPhone = values.branchPhone.trim();
+      if (branchName.length < 1) {
+        errors.branchName = "C\u1EA7n \u0111i\u1EC1n t\xEAn \u0111\u1EA1i l\xFD";
+      } else if (!(branchName in branchInfos)) {
+        errors.branchName = "Kh\xF4ng t\xECm th\u1EA5y th\xF4ng tin \u0111\u0103ng k\xFD c\u1EE7a \u0111\u1EA1i l\xFD";
+      }
+      if (branchPhone.length != 10 || !/^\d{10}$/.test(branchPhone)) {
+        errors.branchPhone = "C\u1EA7n \u0111i\u1EC1n S\u0110T \u0111\u1EA1i l\xFD g\u1ED3m 10 ch\u1EEF s\u1ED1";
+      }
+      if (branchPhone != branchInfos[branchName]) {
+        errors.branchPhone = "S\u0110T \u0111\u0103ng k\xFD kh\xF4ng kh\u1EDBp";
+      }
+      if (values.images.length > 5) {
+        errors.images = "H\u1EC7 th\u1ED1ng ch\u1EC9 nh\u1EADn t\u1ED1i \u0111a 5 t\u1EA5m \u1EA3nh, vui l\xF2ng t\u1EA3i l\u1EA1i";
+      }
+      if (values.customerName.trim().length < 1) {
+        errors.customerName = "Vui l\xF2ng \u0111i\u1EC1n t\xEAn kh\xE1ch h\xE0ng";
+      }
+      const customerPhone = values.branchPhone.trim();
+      if (customerPhone.length < 1 || /^\d{10}$/.test(customerPhone)) {
+        errors.customerPhone = "Vui l\xF2ng \u0111i\u1EC1n S\u0110T kh\xE1ch h\xE0ng g\u1ED3m 10 ch\u1EEF s\u1ED1 b\u1EAFt \u0111\u1EA7u b\u1EB1ng 0";
+      }
+      if (!phonePrefixes.includes(customerPhone.substring(0, 3))) {
+        errors.customerPhone = "Nh\xE0 m\u1EA1ng ch\u01B0a \u0111\u01B0\u1EE3c khai b\xE1o";
+      }
+      return errors;
+    },
+    onSubmit: (values, actions) => {
+      handleSubmit(values).then(() => {
+        actions.setSubmitting(false);
+        actions.resetForm();
+      });
+    },
+    children: ({
+      values,
+      errors,
+      touched,
+      handleChange,
+      handleBlur,
+      handleSubmit: handleSubmit2,
+      setFieldValue
+    }) => /* @__PURE__ */ jsx(Fragment$1, {
+      children: /* @__PURE__ */ jsxs(Form, {
+        className: "grid p-4 w-full max-w-full",
+        onSubmit: handleSubmit2,
+        children: [/* @__PURE__ */ jsxs("fieldset", {
+          className: "p-4 w-full",
+          children: [/* @__PURE__ */ jsx("legend", {
+            className: "uppercase font-extrabold text-xl",
+            children: "1.Th\xF4ng tin \u0111\u1EA1i l\xFD"
+          }), /* @__PURE__ */ jsxs("div", {
+            className: "grid md:grid-cols-2 py-4 bg-white rounded-2xl box-content place-content-center",
+            children: [/* @__PURE__ */ jsx("div", {
+              children: /* @__PURE__ */ jsxs("div", {
+                className: "flex flex-col p-4",
+                children: [/* @__PURE__ */ jsx("label", {
+                  htmlFor: "branchName",
+                  className: "mx-2",
+                  children: "T\xEAn \u0111\u1EA1i l\xFD"
+                }), /* @__PURE__ */ jsx(Field, {
+                  id: "branchName",
+                  name: "branchName",
+                  type: "branchName",
+                  value: values.branchName,
+                  onChange: handleChange,
+                  onBlur: handleBlur,
+                  className: "form-input bg-light-green rounded-lg p-2 mx-2"
+                }), /* @__PURE__ */ jsx(ErrorMessage, {
+                  name: "branchName",
+                  className: "error-message",
+                  component: "span"
+                })]
+              })
+            }), /* @__PURE__ */ jsx("div", {
+              children: /* @__PURE__ */ jsxs("div", {
+                className: "flex flex-col p-4",
+                children: [/* @__PURE__ */ jsx("label", {
+                  htmlFor: "branchPhone",
+                  className: "mx-2",
+                  children: "S\u0110T \u0111\u1EA1i l\xFD \u0111\u0103ng k\xFD"
+                }), /* @__PURE__ */ jsx(Field, {
+                  id: "branchPhone",
+                  name: "branchPhone",
+                  value: values.branchPhone,
+                  onChange: handleChange,
+                  onBlur: handleBlur,
+                  type: "tel",
+                  className: "form-input bg-light-green rounded-lg p-2 mx-2"
+                }), /* @__PURE__ */ jsx(ErrorMessage, {
+                  name: "branchPhone",
+                  className: "error-message",
+                  component: "span"
+                })]
+              })
+            })]
+          })]
+        }), /* @__PURE__ */ jsx("div", {
+          children: /* @__PURE__ */ jsxs("fieldset", {
+            className: "p-4 w-full",
+            children: [/* @__PURE__ */ jsx("legend", {
+              className: "uppercase font-extrabold text-xl",
+              children: "2.Th\xF4ng tin kh\xE1ch h\xE0ng"
+            }), /* @__PURE__ */ jsx("div", {
+              className: "bg-white box-content py-4 rounded-xl",
+              children: /* @__PURE__ */ jsxs("div", {
+                className: " p-4 flex flex-col bg-white rounded-2xl place-content-center",
+                children: [/* @__PURE__ */ jsxs("div", {
+                  className: "grid md:grid-cols-2 grid-flow-dense",
+                  children: [/* @__PURE__ */ jsxs("div", {
+                    children: [/* @__PURE__ */ jsxs("div", {
+                      className: "flex flex-col py-4",
+                      children: [/* @__PURE__ */ jsx("label", {
+                        htmlFor: "customerName",
+                        className: "mx-2",
+                        children: "T\xEAn kh\xE1ch h\xE0ng"
+                      }), /* @__PURE__ */ jsx(Field, {
+                        id: "customerName",
+                        name: "customerName",
+                        value: values.customerName,
+                        onChange: handleChange,
+                        onBlur: handleBlur,
+                        className: "form-input bg-light-green rounded-lg p-2 mx-2"
+                      })]
+                    }), /* @__PURE__ */ jsx(ErrorMessage, {
+                      name: "customerName",
+                      className: "error-message",
+                      component: "span"
+                    })]
+                  }), /* @__PURE__ */ jsx("div", {
+                    children: /* @__PURE__ */ jsxs("div", {
+                      className: "flex flex-col py-4",
+                      children: [/* @__PURE__ */ jsx("label", {
+                        htmlFor: "customerPhone",
+                        className: "mx-2",
+                        children: "S\u0110T kh\xE1ch h\xE0ng"
+                      }), /* @__PURE__ */ jsx(Field, {
+                        id: "customerPhone",
+                        name: "customerPhone",
+                        value: values.customerPhone,
+                        onChange: handleChange,
+                        onBlur: handleBlur,
+                        type: "tel",
+                        className: "form-input bg-light-green rounded-lg p-2 mx-2"
+                      }), /* @__PURE__ */ jsx(ErrorMessage, {
+                        name: "customerPhone",
+                        className: "error-message",
+                        component: "span"
+                      })]
+                    })
+                  })]
+                }), /* @__PURE__ */ jsx("span", {
+                  className: "font-bold mx-6",
+                  children: "A. \u0110\u1ECBa ch\u1EC9 mua h\xE0ng"
+                }), /* @__PURE__ */ jsxs("div", {
+                  className: "grid md:grid-cols-5",
+                  children: [/* @__PURE__ */ jsxs("div", {
+                    className: "md:col-span-2",
+                    children: [/* @__PURE__ */ jsxs("div", {
+                      className: "flex flex-col py-4",
+                      children: [/* @__PURE__ */ jsx("label", {
+                        htmlFor: "customerProvince",
+                        className: "mx-2",
+                        children: "T\u1EC9nh/ Th\xE0nh ph\u1ED1"
+                      }), /* @__PURE__ */ jsx(Field, {
+                        as: "select",
+                        id: "customerProvince",
+                        name: "customerProvince",
+                        value: values.customerProvince,
+                        onChange: handleChange,
+                        onBlur: handleBlur,
+                        type: "select",
+                        className: "form-input bg-light-green rounded-lg p-2 mx-2",
+                        children: provinces.map((item, idx) => {
+                          return /* @__PURE__ */ jsx("option", {
+                            value: item,
+                            children: item
+                          }, idx);
+                        })
+                      })]
+                    }), /* @__PURE__ */ jsx(ErrorMessage, {
+                      name: "customerProvince",
+                      className: "error-message",
+                      component: "span"
+                    })]
+                  }), /* @__PURE__ */ jsx("div", {
+                    className: "col-span-3",
+                    children: /* @__PURE__ */ jsxs("div", {
+                      className: "flex flex-col py-4",
+                      children: [/* @__PURE__ */ jsx("label", {
+                        htmlFor: "customerAddress",
+                        className: "mx-2",
+                        children: "\u0110\u1ECBa ch\u1EC9 c\u1EE5 th\u1EC3"
+                      }), /* @__PURE__ */ jsx(Field, {
+                        id: "customerAddress",
+                        name: "customerAddress",
+                        value: values.customerAddress,
+                        onChange: handleChange,
+                        onBlur: handleBlur,
+                        type: "select",
+                        className: "form-input bg-light-green rounded-lg p-2 mx-2"
+                      }), /* @__PURE__ */ jsx(ErrorMessage, {
+                        name: "customerAddress",
+                        className: "error-message",
+                        component: "span"
+                      })]
+                    })
+                  })]
+                }), /* @__PURE__ */ jsx("span", {
+                  className: "font-bold mx-6",
+                  children: "B. Model"
+                }), /* @__PURE__ */ jsxs("div", {
+                  className: "md:grid grid-cols-3",
+                  children: [/* @__PURE__ */ jsx("div", {
+                    className: "col-span-1",
+                    children: /* @__PURE__ */ jsxs("div", {
+                      className: "flex flex-col py-4",
+                      children: [/* @__PURE__ */ jsx("label", {
+                        htmlFor: "model",
+                        className: "mx-2",
+                        children: "Model"
+                      }), /* @__PURE__ */ jsx(Field, {
+                        as: "select",
+                        id: "model",
+                        name: "model",
+                        value: values.model,
+                        onChange: handleChange,
+                        onBlur: handleBlur,
+                        type: "select",
+                        className: "form-input bg-light-green rounded-lg p-2 mx-2",
+                        children: models.map((item, idx) => {
+                          return /* @__PURE__ */ jsx("option", {
+                            value: item,
+                            children: item
+                          }, idx);
+                        })
+                      }), /* @__PURE__ */ jsx(ErrorMessage, {
+                        name: "model",
+                        className: "error-message",
+                        component: "span"
+                      })]
+                    })
+                  }), /* @__PURE__ */ jsx("div", {
+                    className: "col-span-1",
+                    children: /* @__PURE__ */ jsxs("div", {
+                      className: "flex flex-col py-4",
+                      children: [/* @__PURE__ */ jsx("label", {
+                        htmlFor: "serial",
+                        className: "mx-2",
+                        children: "Serial"
+                      }), /* @__PURE__ */ jsx(Field, {
+                        id: "serial",
+                        name: "serial",
+                        value: values.serial,
+                        onChange: handleChange,
+                        onBlur: handleBlur,
+                        type: "select",
+                        className: "form-input bg-light-green rounded-lg p-2 mx-2"
+                      }), /* @__PURE__ */ jsx(ErrorMessage, {
+                        name: "serial",
+                        className: "error-message",
+                        component: "span"
+                      })]
+                    })
+                  }), /* @__PURE__ */ jsx("div", {
+                    className: "col-span-1",
+                    children: /* @__PURE__ */ jsxs("div", {
+                      className: "flex flex-col py-4",
+                      children: [/* @__PURE__ */ jsx("label", {
+                        htmlFor: "installDate",
+                        className: "mx-2",
+                        children: "Th\u1EDDi gian l\u1EAFp \u0111\u1EB7t"
+                      }), /* @__PURE__ */ jsx(Field, {
+                        id: "installDate",
+                        name: "installDate",
+                        value: values.installDate,
+                        onChange: handleChange,
+                        onBlur: handleBlur,
+                        type: "date",
+                        className: "form-input bg-light-green rounded-lg p-2 mx-2"
+                      })]
+                    })
+                  })]
+                }), /* @__PURE__ */ jsx("span", {
+                  className: "text-center",
+                  children: "H\xECnh \u1EA3nh phi\u1EBFu mua h\xE0ng/ h\xF3a \u0111\u01A1n h\u1EE3p l\u1EC7:"
+                }), /* @__PURE__ */ jsx("div", {
+                  className: "flex px-2 items-center justify-center",
+                  children: previewImages(values.images)
+                }), /* @__PURE__ */ jsx(ErrorMessage, {
+                  name: "images",
+                  className: "error-message",
+                  component: "span"
+                }), /* @__PURE__ */ jsx("img", {
+                  id: "upload-image-btn",
+                  src: "/images/upload-images.png",
+                  alt: "",
+                  className: "h-9 mx-auto my-4",
+                  onClick: () => {
+                    document.getElementById("upload-images")?.click();
+                  }
+                }), /* @__PURE__ */ jsx("input", {
+                  id: "upload-images",
+                  type: "file",
+                  name: "images",
+                  multiple: true,
+                  accept: "image/*",
+                  className: "invisible",
+                  hidden: true,
+                  onChange: (event) => {
+                    setFieldValue("images", event.currentTarget.files);
+                  }
+                }), uploadSuccess ? /* @__PURE__ */ jsx("span", {
+                  className: "text-green-600",
+                  children: "\u0110\xE3 g\u1EEDi \u0111\u01A1n th\xE0nh c\xF4ng"
+                }) : null, errorMessage ? /* @__PURE__ */ jsxs("span", {
+                  className: "error-message",
+                  children: ["G\u1EEDi \u0111\u01A1n kh\xF4ng th\xE0nh c\xF4ng, vui l\xF2ng ki\u1EC3m tra l\u1EA1i. (", errorMessage, ")"]
+                }) : null, /* @__PURE__ */ jsx("input", {
+                  id: "install-form-submit-btn",
+                  type: "submit",
+                  value: "G\u1EEDi th\xF4ng tin",
+                  className: "bg-dark-green mx-auto text-white text-xl font-bold p-2 px-6 rounded-full uppercase"
+                })]
+              })
+            })]
+          })
+        })]
+      })
+    })
+  });
+}
+__astro_tag_component__(FormikForm, "@astrojs/react");
 
-        <div class="text-center items-center astro-XA6HDSRT">
-            <span class="astro-XA6HDSRT">Hình ảnh phiếu mua hàng/ phiếu lắp đặt/ hóa đơn hợp lệ:</span>
-            <img id="upload-image-btn" src="/images/upload-images.png" alt="" class="h-9 mx-auto my-4 astro-XA6HDSRT">
-            <input id="upload-images" type="file" name="images" multiple accept="image/*" class="invisible astro-XA6HDSRT" hidden>
-            <input id="install-form-submit-btn" type="submit" value="Gửi thông tin" class="bg-dark-green text-white text-xl font-bold mx-auto p-2 px-6 rounded-full uppercase astro-XA6HDSRT">
-        </div>
-
-    </form>
-</div>
-
-
-
-${maybeRenderHead($$result)}`;
-});
-
-const $$Astro$6 = createAstro("/Users/khanhnguyen/Documents/Projects/personal/freelance/aos-smith/src/components/Register.astro", "", "file:///Users/khanhnguyen/Documents/Projects/personal/freelance/aos-smith/");
+const $$Astro$5 = createAstro("/Users/khanhnguyen/Documents/Projects/personal/freelance/aos-smith/src/components/Register.astro", "", "file:///Users/khanhnguyen/Documents/Projects/personal/freelance/aos-smith/");
 const $$Register = createComponent(async ($$result, $$props, $$slots) => {
-  const Astro2 = $$result.createAstro($$Astro$6, $$props, $$slots);
+  const Astro2 = $$result.createAstro($$Astro$5, $$props, $$slots);
   Astro2.self = $$Register;
   return renderTemplate`${maybeRenderHead($$result)}<div class="pt-14 flex flex-wrap justify-center align-top max-w-full w-full">
-    <div class="min-w-[640px] flex justify-center">
-        <div class="w-1/2">
-            <img src="/images/agents.png" alt="" class="object-cover">
-        </div>
-    </div>
-    <div class="min-w-[640px] flex flex-col">
-        <h1 class="uppercase font-bold font-roboto text-4xl text-center">ĐĂNG KÝ ĐỔI THƯỞNG</h1>
-        ${renderComponent($$result, "Form", $$Form, {})}
+    <div class="flex flex-col w-3/4 lg:w-1/2">
+        <h1 class="uppercase font-roboto text-t-dark-green font-extrabold text-4xl text-center">ĐĂNG KÝ ĐỔI THƯỞNG</h1>
+        ${renderComponent($$result, "Formik", FormikForm, { "client:load": true, "client:component-hydration": "load", "client:component-path": "/Users/khanhnguyen/Documents/Projects/personal/freelance/aos-smith/src/components/Formik", "client:component-export": "default" })}
     </div>
 </div>`;
 });
 
-const $$Astro$5 = createAstro("/Users/khanhnguyen/Documents/Projects/personal/freelance/aos-smith/src/components/Hero.astro", "", "file:///Users/khanhnguyen/Documents/Projects/personal/freelance/aos-smith/");
+const $$Astro$4 = createAstro("/Users/khanhnguyen/Documents/Projects/personal/freelance/aos-smith/src/components/Hero.astro", "", "file:///Users/khanhnguyen/Documents/Projects/personal/freelance/aos-smith/");
 const $$Hero = createComponent(async ($$result, $$props, $$slots) => {
-  const Astro2 = $$result.createAstro($$Astro$5, $$props, $$slots);
+  const Astro2 = $$result.createAstro($$Astro$4, $$props, $$slots);
   Astro2.self = $$Hero;
   return renderTemplate`${maybeRenderHead($$result)}<div class="container hero-container w-full max-w-full pb-16 h-96 relative">
-        <img src="/images/top-banner.jpg" alt="" class="object-cover object-top w-full h-full z-100 absolute">
+        <img src="/images/top-banner.png" alt="" class="object-cover object-top w-full h-full z-100 absolute">
         <div class="absolute pt-6 w-full flex justify-center">
-            <div class="w-3/6 font-bold font-roboto">
-                <img src="/images/logo.png" alt="" class="h-9">
-                <div class="text-2xl mt-4 mb-2 text-t-dark-green md:text-4xl">Chương trình</div>
-                <div class="text-2xl md:text-4xl">HỖ TRỢ ĐẠI LÝ <br> CỦA AO SMITH</div>
-                <div class="text-2xl text-white md:text-3xl">Đăng ký ngay - Đổi thưởng khủng</div>
-            
-                <div class="bg-white rounded-full inline-block text-t-dark-green px-3 py-1 mt-5 mb-2">Từ 18.11.2022 đến 16.01.2023</div>
-                <p class="max-w-sm text-xs text-gray-800 md:text-sm">Với mỗi đơn hàng bán ra và hoàn thành lắp đặt trong thời gian của chương trình, Đại lý sẽ được đổi thưởng sau khi nhập đầy đủ thông tin khách hàng lên trang thông tin của chương trình.</p>
+            <div class="font-roboto flex flex-col text-center uppercase font-extrabold">
+                <img src="/images/logo.png" alt="" class="h-9 place-self-center">
+                    <div class="text-5xl mt-12 mb-4 text-black">CHƯƠNG TRÌNH</div>
+                    <div class="text-5xl mb-8 text-white">THƯỞNG LẮP ĐẶT</div>
+                    <div class="text-xl text-white my-8 bg-t-dark-green px-6 py-2 rounded-full">Đăng ký ngay - Đổi thưởng liền tay</div>
+        
             </div>
-            <div class="w-2/6"></div>
         </div>
 </div>`;
 });
 
-const $$Astro$4 = createAstro("/Users/khanhnguyen/Documents/Projects/personal/freelance/aos-smith/src/components/Terms.astro", "", "file:///Users/khanhnguyen/Documents/Projects/personal/freelance/aos-smith/");
+const $$Astro$3 = createAstro("/Users/khanhnguyen/Documents/Projects/personal/freelance/aos-smith/src/components/Terms.astro", "", "file:///Users/khanhnguyen/Documents/Projects/personal/freelance/aos-smith/");
 const $$Terms = createComponent(async ($$result, $$props, $$slots) => {
-  const Astro2 = $$result.createAstro($$Astro$4, $$props, $$slots);
+  const Astro2 = $$result.createAstro($$Astro$3, $$props, $$slots);
   Astro2.self = $$Terms;
-  return renderTemplate`${maybeRenderHead($$result)}<section>
-    <div class="mt-14">
-        <h1 class="text-4xl text-center font-bold mb-4">THỂ LỆ CHƯƠNG TRÌNH</h1>
-        <div class="grid xs:grid-cols-2">
-            <div class="flex justify-center translate-x-1/4">
+  return renderTemplate`${maybeRenderHead($$result)}<div class="mt-14">
+        <h1 class="text-4xl text-center text-t-dark-green font-bold mb-4">THỂ LỆ CHƯƠNG TRÌNH</h1>
+        <p class="mx-auto max-w-7xl font-bold my-6 text-center text-gray-800 md:text-2xl">Với mỗi đơn hàng bán ra và hoàn thành lắp đặt trong thời gian của chương trình, Đại lý sẽ được đổi thưởng sau khi nhập đầy đủ thông tin khách hàng lên trang thông tin của chương trình.</p>
+        <div class="grid grid-row">
+            <div class="grid grid-cols-2 justify-items-center">
                 <div class="relative">
-                    <img src="/images/announce-button.png" alt="" class="w-2/3 object-cover">
-                    <p class="text-white absolute w-2/3 text-base text-center top-1/2 left-1/2 -translate-x-3/4 -translate-y-1/2 md:text-xl">
-                        <strong class="text-xl md:text-2xl">THỜI GIAN:</strong>
-                        <br>18.11.2022 - 16.01.2023
-                    </p>
+                    <img src="/images/button-time.png" alt="" class="object-cover">
+                    <img src="/images/flare.png" alt="" class="absolute top-0 right-0 -translate-y-1/2 translate-x-[7rem]">
                 </div>
+                <img src="/images/button-audience.png" alt="" class="object-cover">
             </div>
-            <div class="flex justify-center">
-                <div class="relative">
-                    <img src="/images/announce-button.png" alt="" class="w-2/3 object-cover">
-                    <p class="text-white absolute w-2/3 text-base text-center top-1/2 left-1/2 -translate-x-3/4 -translate-y-1/2 md:text-xl">
-                        <strong class="text-base sm:text-xl md:text-2xl">ĐỐI TƯỢNG THAM GIA:</strong>
-                        <br>Đại lý của AO Smith
-                    </p>
-                </div>
+            <div class="grid grid-cols-2 justify-items-center mt-2">
+                <img src="/images/path.png" alt="" class="">
+                <img src="/images/path.png" alt="" class="">
+            </div>
+            <div class="grid grid-cols-2 justify-items-center mt-6">
+                <span class="w-2/3 text-center justify-center bg-white text-base box-content rounded-full px-8 py-4 md:text-xl">Thời gian trả thưởng trong vòng 06 ngày làm việc kể từ khi Đại Lý nhập thông tin đơn hàng chính xác lên website của chương trình.</span>
+                <span class="w-2/3 text-center justify-center bg-white text-base box-content rounded-full px-8 py-4 md:text-xl">Trong trường hợp không nhận được thưởng, Đại Lý vui lòng liên hệ với nhân viên kinh doanh của A. O. Smith để được hỗ trợ.</span>
             </div>
         </div>
     </div>
-</section>
 
 <section>
-    <div class="mt-14 text-center justify-center flex flex-col items-center">
-        <h1 class="text-4xl text-center font-bold mb-4 text-t-dark-green">QUY TRÌNH THAM GIA</h1>
-        <img src="Asset 5.png" alt="">
-    </div>
-</section>`;
-});
-
-const $$Astro$3 = createAstro("/Users/khanhnguyen/Documents/Projects/personal/freelance/aos-smith/src/components/Guide.astro", "", "file:///Users/khanhnguyen/Documents/Projects/personal/freelance/aos-smith/");
-const $$Guide = createComponent(async ($$result, $$props, $$slots) => {
-  const Astro2 = $$result.createAstro($$Astro$3, $$props, $$slots);
-  Astro2.self = $$Guide;
-  const steps = [
-    { "text": "Truy c\u1EADp v\xE0o link nh\u1EADn qu\xE0 \u0111\xEDnh k\xE8m trong email", "imgUrl": "/images/guide-step-1.png" },
-    { "text": "Nh\u1EADp m\u1EADt kh\u1EA9u l\xE0 6 s\u1ED1 \u0111\u01B0\u1EE3c g\u1EEDi t\u1EDBi tin nh\u1EAFn t\u1EA1i th\u1EDDi \u0111i\u1EC3m m\u1EDF link", "imgUrl": "/images/guide-step-2.png" },
-    { "text": "\u1EA4n ch\u1ECDn 'M\u1EDF qu\xE0 c\u1EE7a b\u1EA1n'", "imgUrl": "/images/guide-step-3.png" },
-    { "text": "Ch\u1ECDn th\u01B0\u01A1ng hi\u1EC7u mu\u1ED1n s\u1EED d\u1EE5ng", "imgUrl": "/images/guide-step-4.png" },
-    { "text": "Nh\u1EADp gi\xE1 tr\u1ECB voucher mu\u1ED1n s\u1EED d\u1EE5ng, ch\u1ECDn \u201CTi\u1EBFp t\u1EE5c\u201D v\xE0 x\xE1c nh\u1EADn chi ti\xEAu.", "imgUrl": "/images/guide-step-5.png" },
-    { "text": "Show e-code t\u1EA1i c\u1EEDa h\xE0ng ho\u1EB7c v\xE0o \u1EE9ng d\u1EE5ng ti\u1EC7n \xEDch online mua s\u1EAFm, nh\u1EADp e-code \u1EDF ph\u1EA7n thanh to\xE1n \u0111\u1EC3 s\u1EED d\u1EE5ng.", "imgUrl": "/images/guide-step-6.png" }
-  ];
-  return renderTemplate`${maybeRenderHead($$result)}<section>
-    <div class="mt-14 text-center">
-        <h1 class="text-4xl text-center font-bold mb-4">HƯỚNG DẪN SỬ DỤNG VOUCHER</h1>
-        <div class="grid grid-flow-row-dense gap-1 gap-x-2 content-around grid-cols-2 grid-rows-3 justify-center space-x-0 px-4 md:grid-flow-col-dense md:grid-rows-none md:grid-cols-none">    
-            ${steps.map((item, idx) => renderTemplate`<div class="max-w-1/6">
-                    <div class="wrapper">
-                        <img${addAttribute(item.imgUrl, "src")} alt="" class="object-fit object-cover">
-                        <div>
-                            <h1 class="mx-3 text-t-dark-green text-left text-3xl font-bold">0${idx + 1}</h1>
-                            <p class="w-0 min-w-full text-left px-2">${item.text}</p>
-                        </div>
-                    </div>
-                </div>`)}
+    <div class="mt-14 text-center justify-center flex flex-col items-center box-content">
+        <h1 class="text-4xl text-center font-bold mb-4 text-t-dark-green">HOTLINE HƯỚNG DẪN SỬ DỤNG VOUCHER</h1>
+        <div class="w-1/3 flex md:text-4xl font-extrabold text-white bg-t-dark-green text-center px-14 py-2 rounded-full justify-center align-middle">
+            <img src="/images/phone.png" alt="" class="h-6 mx-2 md:h-12">
+            <a href="tel:1900558820" class="flex items-center box-content"><button>1900.558.820</button></a>
         </div>
-        <p class="text-bold italic text-xl py-6">Hotline hướng dẫn sử dụng voucher XXXX</p>
     </div>
 </section>`;
 });
@@ -12763,40 +13075,10 @@ const $$Astro$2 = createAstro("/Users/khanhnguyen/Documents/Projects/personal/fr
 const $$Footer = createComponent(async ($$result, $$props, $$slots) => {
   const Astro2 = $$result.createAstro($$Astro$2, $$props, $$slots);
   Astro2.self = $$Footer;
-  return renderTemplate`${maybeRenderHead($$result)}<div>
-    <div class="text-center pt-14">
-        <button class="text-2xl font-extrabold text-white bg-t-dark-green text-center px-8 py-3 rounded-full justify-center align-middle">ĐĂNG KÝ ĐỔI THƯỞNG NGAY</button>
-    </div>
-    <img src="/images/Footer.png" alt="">
+  return renderTemplate`${maybeRenderHead($$result)}<div class="relative">
+    <img src="/images/Footer.png" alt="" class="absolute top-0 z-1">
 </div>`;
 });
-
-function App() {
-  return /* @__PURE__ */ jsx(Fragment$1, {
-    children: /* @__PURE__ */ jsxs(Swiper, {
-      navigation: true,
-      modules: [Navigation],
-      className: "mySwiper bg-light-green",
-      children: [/* @__PURE__ */ jsx(SwiperSlide, {
-        children: /* @__PURE__ */ jsx("img", {
-          src: "/images/Slide_R400s.png",
-          className: "max-w-xl bg-light-green"
-        })
-      }), /* @__PURE__ */ jsx(SwiperSlide, {
-        children: /* @__PURE__ */ jsx("img", {
-          src: "/images/Slide_S600.png",
-          className: "max-w-xl bg-light-green"
-        })
-      }), /* @__PURE__ */ jsx(SwiperSlide, {
-        children: /* @__PURE__ */ jsx("img", {
-          src: "/images/Slide_VitaPlus.png",
-          className: "max-w-xl bg-light-green"
-        })
-      })]
-    })
-  });
-}
-__astro_tag_component__(App, "@astrojs/react");
 
 const $$Astro$1 = createAstro("/Users/khanhnguyen/Documents/Projects/personal/freelance/aos-smith/src/components/LandingPage.astro", "", "file:///Users/khanhnguyen/Documents/Projects/personal/freelance/aos-smith/");
 const $$LandingPage = createComponent(async ($$result, $$props, $$slots) => {
@@ -12806,8 +13088,6 @@ const $$LandingPage = createComponent(async ($$result, $$props, $$slots) => {
     ${renderComponent($$result, "Hero", $$Hero, {})}
     ${renderComponent($$result, "Register", $$Register, {})}
     ${renderComponent($$result, "Terms", $$Terms, {})}
-    ${renderComponent($$result, "Guide", $$Guide, {})}
-    ${renderComponent($$result, "Swiper", App, { "client:visible": true, "client:component-hydration": "visible", "client:component-path": "/Users/khanhnguyen/Documents/Projects/personal/freelance/aos-smith/src/components/Swiper", "client:component-export": "default" })}
     ${renderComponent($$result, "Footer", $$Footer, {})}
 </div>`;
 });
@@ -12821,10 +13101,11 @@ const $$Index = createComponent(async ($$result, $$props, $$slots) => {
 		<meta charset="utf-8">
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg">
 		<meta name="viewport" content="width=device-width">
-		<link rel="stylesheet" href="src/styles/global.css">
+		<link rel="stylesheet" href="styles/global.css">
 		<title>AOSmith</title>
 	${renderHead($$result)}</head>
-	${renderComponent($$result, "Body", $$Body, {}, { "default": () => renderTemplate`${renderComponent($$result, "LandingPage", $$LandingPage, {})}` })}
+	${renderComponent($$result, "Body", $$Body, {}, { "default": () => renderTemplate`<img src="/images/background.png" alt="" class="object-cover absolute -z-50">${renderComponent($$result, "LandingPage", $$LandingPage, {})}` })}
+
 </html>`;
 });
 
@@ -12915,7 +13196,7 @@ function deserializeManifest(serializedManifest) {
   };
 }
 
-const _manifest = Object.assign(deserializeManifest({"adapterName":"@astrojs/netlify/functions","routes":[{"file":"","links":[],"scripts":[],"routeData":{"type":"endpoint","route":"/_image","pattern":"^\\/_image$","segments":[[{"content":"_image","dynamic":false,"spread":false}]],"params":[],"component":"node_modules/@astrojs/image/dist/endpoint.js","pathname":"/_image","_meta":{"trailingSlash":"ignore"}}},{"file":"","links":["assets/index.8baa5bec.css"],"scripts":[{"type":"inline","value":"async function e(){document.getElementById(\"upload-images\")?.click()}document.getElementById(\"upload-image-btn\")?.addEventListener(\"click\",e);\n"}],"routeData":{"route":"/","type":"page","pattern":"^\\/$","segments":[],"params":[],"component":"src/pages/index.astro","pathname":"/","_meta":{"trailingSlash":"ignore"}}}],"base":"/","markdown":{"drafts":false,"syntaxHighlight":"shiki","shikiConfig":{"langs":[],"theme":"github-dark","wrap":false},"remarkPlugins":[],"rehypePlugins":[],"remarkRehype":{},"extendDefaultPlugins":false,"isAstroFlavoredMd":false},"pageMap":null,"renderers":[],"entryModules":{"\u0000@astrojs-ssr-virtual-entry":"entry.mjs","/Users/khanhnguyen/Documents/Projects/personal/freelance/aos-smith/src/components/Swiper":"Swiper.3e222ab4.js","@astrojs/react/client.js":"client.fe1ffa34.js","/astro/hoisted.js?q=0":"hoisted.846b07d9.js","astro:scripts/before-hydration.js":""},"assets":["/assets/index.8baa5bec.css","/Asset 3.png","/Asset 5.png","/Swiper.3e222ab4.js","/client.fe1ffa34.js","/favicon.svg","/top-banner.png","/chunks/index.3cf3dcd5.js","/images/Footer.png","/images/Slide_R400s.png","/images/Slide_S600.png","/images/Slide_VitaPlus.png","/images/agents.png","/images/announce-button.png","/images/aos-s600.png","/images/bookmark.png","/images/bubble.png","/images/guide-step-1.png","/images/guide-step-2.png","/images/guide-step-3.png","/images/guide-step-4.png","/images/guide-step-5.png","/images/guide-step-6.png","/images/iphone.png","/images/leaf.png","/images/logo.png","/images/slider-table.png","/images/top-banner.jpg","/images/upload-images.png","/images/voucher-1mil.png","/images/voucher-800k.png"]}), {
+const _manifest = Object.assign(deserializeManifest({"adapterName":"@astrojs/netlify/functions","routes":[{"file":"","links":[],"scripts":[],"routeData":{"type":"endpoint","route":"/_image","pattern":"^\\/_image$","segments":[[{"content":"_image","dynamic":false,"spread":false}]],"params":[],"component":"node_modules/@astrojs/image/dist/endpoint.js","pathname":"/_image","_meta":{"trailingSlash":"ignore"}}},{"file":"","links":["assets/index.21c1e623.css"],"scripts":[],"routeData":{"route":"/","type":"page","pattern":"^\\/$","segments":[],"params":[],"component":"src/pages/index.astro","pathname":"/","_meta":{"trailingSlash":"ignore"}}}],"base":"/","markdown":{"drafts":false,"syntaxHighlight":"shiki","shikiConfig":{"langs":[],"theme":"github-dark","wrap":false},"remarkPlugins":[],"rehypePlugins":[],"remarkRehype":{},"extendDefaultPlugins":false,"isAstroFlavoredMd":false},"pageMap":null,"renderers":[],"entryModules":{"\u0000@astrojs-ssr-virtual-entry":"entry.mjs","/Users/khanhnguyen/Documents/Projects/personal/freelance/aos-smith/src/components/Formik":"Formik.ed26468e.js","@astrojs/react/client.js":"client.e72d969a.js","astro:scripts/before-hydration.js":""},"assets":["/assets/index.21c1e623.css","/Asset 3.png","/Asset 5.png","/Formik.ed26468e.js","/client.e72d969a.js","/favicon.svg","/top-banner.png","/chunks/index.67686ce5.js","/images/Footer.png","/images/Slide_R400s.png","/images/Slide_S600.png","/images/Slide_VitaPlus.png","/images/agents.png","/images/announce-button.png","/images/aos-s600.png","/images/background.png","/images/bookmark.png","/images/bubble.png","/images/button-audience.png","/images/button-flare.png","/images/button-time.png","/images/flare.png","/images/guide-step-1.png","/images/guide-step-2.png","/images/guide-step-3.png","/images/guide-step-4.png","/images/guide-step-5.png","/images/guide-step-6.png","/images/iphone.png","/images/leaf.png","/images/logo.png","/images/path.png","/images/phone.png","/images/slider-table.png","/images/top-banner.png","/images/upload-images.png","/images/voucher-1mil.png","/images/voucher-800k.png","/styles/global.css"]}), {
 	pageMap: pageMap,
 	renderers: renderers
 });
