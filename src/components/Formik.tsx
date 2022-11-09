@@ -269,6 +269,7 @@ export default function FormikForm() {
                       Tên đại lý
                     </label>
                     <Field
+                      as="select"
                       id="branchName"
                       name="branchName"
                       type="branchName"
@@ -277,7 +278,16 @@ export default function FormikForm() {
                       onBlur={handleBlur}
                       className="form-input bg-light-green rounded-lg p-2 mx-2"
                       // required
-                    />
+                    >
+                      <option value="" key="0"></option>
+                      {Object.keys(branchInfos).map((branchName, idx) => {
+                        return (
+                          <option value={branchName} key={idx + 1}>
+                            {branchName}
+                          </option>
+                        )
+                      })}
+                    </Field>
                     <ErrorMessage
                       name="branchName"
                       className="error-message"
@@ -364,7 +374,7 @@ export default function FormikForm() {
                         </div>
                       </div>
                     </div>
-                    <span className="font-bold mx-6">A. Địa chỉ mua hàng</span>
+                    <span className="font-bold mx-6">A. Địa chỉ lắp đặt</span>
                     <div className="grid md:grid-cols-5">
                       <div className="md:col-span-2">
                         <div className="flex flex-col py-4">
@@ -382,9 +392,10 @@ export default function FormikForm() {
                             // required
                             className="form-input bg-light-green rounded-lg p-2 mx-2"
                           >
+                            <option value="" key="0"></option>
                             {provinces.map((item, idx) => {
                               return (
-                                <option key={idx} value={item}>
+                                <option key={idx + 1} value={item}>
                                   {item}
                                 </option>
                               )
@@ -441,9 +452,10 @@ export default function FormikForm() {
                             // required
                             className="form-input bg-light-green rounded-lg p-2 mx-2"
                           >
+                            <option value="" key="0"></option>
                             {models.map((item, idx) => {
                               return (
-                                <option key={idx} value={item}>
+                                <option key={idx + 1} value={item}>
                                   {item}
                                 </option>
                               )
@@ -528,7 +540,9 @@ export default function FormikForm() {
                       className="invisible"
                       hidden
                       onChange={event => {
-                        setFieldValue('images', event.currentTarget.files)
+                        if (event.currentTarget.files) {
+                          setFieldValue('images', event.currentTarget.files)
+                        }
                       }}
                     />
                     {uploadSuccess ? (
